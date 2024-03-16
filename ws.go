@@ -140,7 +140,7 @@ func (ws *Websocket) Recv() (Frame, error) {
 	var payloadLength uint64
 	payloadLength = uint64(head[1] & 0x7F)
 
-	// data is in the next 2 bytes
+	// Data is in the next 2 bytes
 	if payloadLength == 126 {
 		data, err := ws.read(2)
 		if err != nil {
@@ -149,7 +149,7 @@ func (ws *Websocket) Recv() (Frame, error) {
 
 		payloadLength = uint64(binary.BigEndian.Uint16(data))
 
-		// data is in the next 8 bytes
+		// Data is in the next 8 bytes
 	} else if payloadLength == 127 {
 		data, err := ws.read(8)
 		if err != nil {
