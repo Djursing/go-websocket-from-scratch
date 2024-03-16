@@ -6,4 +6,5 @@ type Frame struct {
 	Opcode     byte
 	IsMasked   bool
 	Length     byte
+	Payload    []byte
 }
