@@ -159,15 +159,25 @@ func (ws *Websocket) Recv() (Frame, error) {
 		payloadLength = uint64(binary.BigEndian.Uint16(data))
 	}
 
-	// get masked keys used for decoding payload
+	// Get masked keys used for decoding payload
 	mask, err := ws.read(4)
 	if err != nil {
 		return frame, err
 	}
 
-	payload, err := ws.read(int(payloadLength)) // possible data loss
-
 	frame.Length = byte(payloadLength)
+
+	payload, err := ws.read(int(payloadLength)) // Possible data loss when converting from uint64 to int
+	if err != nil {
+		return frame, err
+	}
+
+	// Decode each byte of the payload
+	for i := uint64(0); i < payloadLength; i++ {
+		payload[i] ^= mask[i%4]
+	}
+
+	frame.Payload = payload
 
 	return frame, nil
 }
