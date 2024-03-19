@@ -6,23 +6,6 @@ import (
 	"net/http"
 )
 
-//// Opening handshake
-// GET /chat HTTP/1.1
-// Host: server.example.com
-// Upgrade: websocket
-// Connection: Upgrade
-// Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-// Origin: http://example.com
-// Sec-WebSocket-Protocol: chat, superchat
-// Sec-WebSocket-Version: 13
-
-//// The handshake from the server looks as follows:
-// HTTP/1.1 101 Switching Protocols
-// Upgrade: websocket
-// Connection: Upgrade
-// Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-// Sec-WebSocket-Protocol: chat
-
 func websocketHandle(w http.ResponseWriter, r *http.Request) {
 	ws, err := NewWebsocket(w, r)
 	if err != nil {
@@ -30,19 +13,45 @@ func websocketHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = ws.Handshake(); err != nil {
+	if err = ws.handshake(); err != nil {
 		log.Println(err)
 		return
 	}
 
 	defer ws.connection.Close()
+
+	for {
+		frame, err := ws.recv()
+		if err != nil {
+			log.Println("Error decoding message", err)
+			return
+		}
+
+		switch frame.Opcode {
+		case 8: // Close
+			return
+		case 9: // Ping
+			frame.Opcode = 10
+			fallthrough
+		case 0: // Continue
+			fallthrough
+		case 1: // Text
+			fallthrough
+		case 2: // Binary
+			if err = ws.send(frame); err != nil {
+				log.Println("Error sending message")
+				return
+			}
+		}
+	}
+
 }
 
 func main() {
 	http.HandleFunc("/", websocketHandle)
 
-	fmt.Printf("Starting server at port 8080\n")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Printf("Starting server at port 9001\n")
+	if err := http.ListenAndServe(":9001", nil); err != nil {
 		log.Fatal(err)
 	}
 }
